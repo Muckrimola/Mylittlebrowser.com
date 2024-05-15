@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Web Befehlszeile</title>
+    <style>
+        body {
+            font-family: 'Philosopher', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff; /* Ändere die Hintergrundfarbe auf Weiß für den Light Mode */
+            color: #282c34; /* Ändere die Schriftfarbe auf Dunkelblau für den Light Mode */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        #prompt-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #instructions-container {
+            display: none;
+            margin-top: 10px;
+            max-width: 90vw; /* Begrenzt die Breite im Portrait-Modus */
+            overflow-x: auto; /* Fügt horizontalen Bildlauf hinzu, falls benötigt */
+        }
+
+        #command {
+            background-color: #ffffff; /* Ändere die Eingabefeld-Hintergrundfarbe auf Weiß für den Light Mode */
+            border: 2px solid #61dafb; /* Ändere die Eingabefeld-Randfarbe auf Blau für den Light Mode */
+            color: #282c34; /* Ändere die Schriftfarbe auf Dunkelblau für den Light Mode */
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            width: 80vw;
+            font-size: 16px;
+        }
+
+        #output {
+            white-space: pre;
+            width: 90%; /* Breite auf 90% des Elternelements setzen */
+            max-width: 800px; /* Maximalbreite festlegen */
+            min-width: 400px; /* Minimalbreite festlegen */
+            overflow-x: auto;
+            padding: 10px;
+            margin-top: 20px;
+            border: 1px solid #61dafb;
+            border-radius: 5px;
+            background-color: #ffffff; /* Ändere die Output-Hintergrundfarbe auf Weiß für den Light Mode */
+        }
+
+        button {
+            background-color: #61dafb;
+            color: #282c34;
+            border: none;
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #4fa3d1;
+        }
+
+        footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 5px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            font-size: 12px;
+        }
+
+        .website-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        #close-button {
+            background-color: #ff6c6c;
+            color: #282c34;
+            border: none;
+            padding: 5px 10px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #close-button:hover {
+            background-color: #d15252;
+        }
+
+        #commands-list {
+            margin-top: 10px;
+            text-align: center; /* Zentriert den Text */
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <h1 style="text-align: center; margin-top: 30px;">My little Browser</h1>
+    </div>
+    <div id="prompt-container">
+        <div class="website-name" id="website-name"></div>
+        <label for="command"></label>
+        <input type="text" id="command" onkeydown="handleKeyDown(event)">
+        <button onclick="toggleInstructions()">Anleitung</button>
+        <button onclick="toggleLanguage()" style="position: fixed; top: 10px; left: 10px;">Deutsch/Englisch</button> <!-- Ändere die Position des Buttons auf oben links -->
+        <button onclick="toggleDarkMode()" style="position: fixed; top: 10px; right: 10px;">Dark Mode/Light Mode</button> <!-- Halte den Dark Mode Button oben rechts -->
+    </div>
+    <div id="instructions-container">
+        <pre id="instructions"></pre>
+        <button id="close-button" onclick="toggleInstructions()">X</button>
+    </div>
+    <pre id="output"></pre>
+    <div id="commands-list">
+        <h3>Gib "help" ein, um alle Befehle anzuzeigen.</h3>
+    </div>
+    <footer>
+        <p>&copy;  My Little Browser | Beta</p>
+    </footer>
+
+    <script>
+        let language = 'de';
+        let darkMode = false;
+
+        const texts = {
+            'de': {
+                instructions: '=== Anleitung ===\n- Verwende "open" gefolgt von einem Website-Namen, um die Website zu öffnen.\n  Beispiel: open youtube\n- Gib "clear" ein, um den Bildschirm zu löschen.\n- Du kannst auch andere Befehle eingeben, die dann ausgeführt werden.\n==================',
+                closeButton: 'X'
+            },
+            'en': {
+                instructions: '=== Instructions ===\n- Use "open" followed by a website name to open the website.\n  Example: open youtube\n- Type "clear" to clear the screen.\n- You can also enter other commands that will be executed.\n===================',
+                closeButton: 'X'
+            }
+        };
+
+        function handleKeyDown(event) {
+            if (event.key === 'Enter') {
+                executeCommand();
+            }
+        }
+
+        function executeCommand() {
+            const inputElement = document.getElementById('command');
+            const outputElement = document.getElementById('output');
+            const websiteNameElement = document.getElementById('website-name');
+
+            const command = inputElement.value;
+            inputElement.value = '';
+
+            const parts = command.toLowerCase().split(' ');
+
+            if (parts[0] === 'open') {
+                const siteName = parts.slice(1).join(' ');
+                if (siteName) {
+                    openWebsite(siteName);
+                    websiteNameElement.textContent = `Website: ${siteName}`;
+                } else {
+                    outputElement.textContent += '\nError. Website not existing or not supported';
+                }
+            } else if (command.toLowerCase() === 'clear') {
+                outputElement.textContent = '';
+                websiteNameElement.textContent = '';
+            } else if (command.toLowerCase() === 'help') {
+                showHelp();
+            } else if (command.toLowerCase() === 'date') {
+                showDate();
+            } else if (command.toLowerCase() === 'time') {
+                showTime();
+            } else if (parts[0] === 'search') {
+                const searchTerms = parts.slice(1).join(' ');
+                if (searchTerms) {
+                    searchWeb(searchTerms);
+                } else {
+                    outputElement.textContent += '\n.';
+                }
+            } else if (parts[0] === 'calculate') {
+                const expression = parts.slice(1).join(' ');
+                if (expression) {
+                    calculateExpression(expression);
+                } else {
+                    outputElement.textContent += '\nError. Wrong sign or number ';
+                }
+            } else if (parts[0] === 'echo') {
+                const message = parts.slice(1).join(' ');
+                if (message) {
+                    echoMessage(message);
+                } else {
+                    outputElement.textContent += '\n';
+                }
+            } else if (parts[0] === 'color') {
+                const color = parts[1];
+                if (color) {
+                    changeConsoleColor(color);
+                } else {
+                    outputElement.textContent += '\nError. Please type a right color';
+                }
+            } else if (parts[0] === 'openurl') {
+                const siteUrl = parts.slice(1).join(' ');
+                if (siteUrl) {
+                    openUrl(siteUrl);
+                    websiteNameElement.textContent = `Website: ${siteUrl}`;
+                } else {
+                    outputElement.textContent += '\nError. Please type a right URL.';
+                }
+            } else {
+                try {
+                    const result = executeShellCommand(command);
+                    outputElement.textContent += `\n${result}`;
+                } catch (error) {
+                    outputElement.textContent += `\nAn error occurred at this command: ${error.message}`;
+                }
+            }
+        }
+
+        function openWebsite(siteName) {
+            const url = `https://www.${siteName}.com`;
+            window.open(url);
+        }
+
+        function openUrl(siteUrl) {
+            const url = siteUrl;
+            window.open(url);
+        }
+
+        function executeShellCommand(command) {
+            return `Befehl ausgeführt: ${command}`;
+        }
+
+        function showHelp() {
+            const outputElement = document.getElementById('output');
+            outputElement.textContent += `
+                \n=== Commands =============
+                \n- open [Website, only supports "https" and ".com"]
+                \n- openurl [Url of Website with https/http]
+                \n- clear
+                \n- date
+                \n- time
+                \n- search [search term(Browser: Google)]
+                \n- calculate [+,-,/,*]
+                \n- color [color in English]
+                \n==========================
+            `;
+        }
+
+        function showDate() {
+            const outputElement = document.getElementById('output');
+            const currentDate = new Date().toLocaleDateString();
+            outputElement.textContent += `\nAktuelles Datum: ${currentDate}`;
+        }
+
+        function showTime() {
+            const outputElement = document.getElementById('output');
+            const currentTime = new Date().toLocaleTimeString();
+            outputElement.textContent += `\nAktuelle Uhrzeit: ${currentTime}`;
+        }
+
+        function searchWeb(searchTerms) {
+            window.open(`https://www.google.com/search?q=${searchTerms}`);
+        }
+
+        function calculateExpression(expression) {
+            try {
+                const result = eval(expression);
+                const outputElement = document.getElementById('output');
+                outputElement.textContent += `\nBerechnungsergebnis: ${result}`;
+            } catch (error) {
+                const outputElement = document.getElementById('output');
+                outputElement.textContent += `\nFehler bei der Berechnung: ${error.message}`;
+            }
+        }
+
+        function echoMessage(message) {
+            const outputElement = document.getElementById('output');
+            outputElement.textContent += `\nEcho: ${message}`;
+        }
+
+        function changeConsoleColor(color) {
+            document.body.style.color = color;
+        }
+
+        function toggleInstructions() {
+            const instructionsContainer = document.getElementById('instructions-container');
+            instructionsContainer.style.display = instructionsContainer.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function toggleLanguage() {
+            language = language === 'de' ? 'en' : 'de';
+            updateTexts();
+        }
+
+        function toggleDarkMode() {
+            darkMode = !darkMode;
+            const body = document.body;
+            const commandInput = document.getElementById('command'); // Das Input-Element holen
+            const output = document.getElementById('output');
+            const commandsList = document.getElementById('commands-list');
+            const buttons = document.querySelectorAll('button');
+
+            if (darkMode) {
+                // Dark Mode Stile setzen
+                body.style.backgroundColor = '#282c34'; /* Hintergrundfarbe auf Dunkelblau ändern */
+                body.style.color = '#abb2bf'; /* Schriftfarbe auf Grau ändern */
+                output.style.backgroundColor = '#3e4451'; /* Hintergrundfarbe des Outputs auf Dunkelgrau ändern */
+                output.style.borderColor = '#61dafb'; /* Randfarbe des Outputs auf Blau ändern */
+                commandsList.style.color = '#abb2bf'; /* Schriftfarbe der Befehlsliste auf Grau ändern */
+                commandInput.style.backgroundColor = '#3e4451'; /* Hintergrundfarbe des Eingabefelds auf Dunkelgrau ändern */
+                commandInput.style.borderColor = '#61dafb'; /* Randfarbe des Eingabefelds auf Blau ändern */
+                buttons.forEach(button => {
+                    button.style.backgroundColor = '#61dafb'; /* Hintergrundfarbe der Buttons auf Blau ändern */
+                    button.style.color = '#282c34'; /* Schriftfarbe der Buttons auf Dunkelblau ändern */
+                });
+            } else {
+                // Light Mode Stile setzen
+                body.style.backgroundColor = '#ffffff'; /* Hintergrundfarbe auf Weiß ändern */
+                body.style.color = '#282c34'; /* Schriftfarbe auf Dunkelblau ändern */
+                output.style.backgroundColor = '#ffffff'; /* Hintergrundfarbe des Outputs auf Weiß ändern */
+                output.style.borderColor = '#61dafb'; /* Randfarbe des Outputs auf Blau ändern */
+                commandsList.style.color = '#282c34'; /* Schriftfarbe der Befehlsliste auf Dunkelblau ändern */
+                commandInput.style.backgroundColor = '#ffffff'; /* Hintergrundfarbe des Eingabefelds auf Weiß ändern */
+                commandInput.style.borderColor = '#61dafb'; /* Randfarbe des Eingabefelds auf Blau ändern */
+                buttons.forEach(button => {
+                    button.style.backgroundColor = '#61dafb'; /* Hintergrundfarbe der Buttons auf Blau ändern */
+                    button.style.color = '#282c34'; /* Schriftfarbe der Buttons auf Dunkelblau ändern */
+                });
+            }
+        }
+
+        function updateTexts() {
+            const instructionsElement = document.getElementById('instructions');
+            const closeButtonElement = document.getElementById('close-button');
+
+            instructionsElement.textContent = texts[language] ? texts[language].instructions : '';
+            closeButtonElement.textContent = texts[language] ? texts[language].closeButton : '';
+            document.getElementById('prompt-container').getElementsByTagName('button')[0].textContent = language === 'de' ? 'Anleitung' : 'Instructions';
+            document.getElementById('prompt-container').getElementsByTagName('button')[1].textContent = language === 'de' ? 'Deutsch/Englisch' : 'German/English';
+            document.getElementById('commands-list').getElementsByTagName('h3')[0].textContent = language === 'de' ? 'Gib "help" ein, um alle Befehle anzuzeigen.' : 'Type "help" to see all commands.';
+        }
+
+        // Initialisierung der Anzeigesprache
+        updateTexts();
+    </script>
+</body>
+
+</html>
